@@ -5,7 +5,7 @@ import {
   SelectQueryBuilder,
 } from 'typeorm';
 import { Pagination } from './pagination';
-import { IPaginationOptions, IPaginationLinks } from './interfaces';
+import { IPaginationOptions } from './interfaces';
 
 export async function paginate<T>(
   repository: Repository<T>,
@@ -31,7 +31,7 @@ export async function paginateRaw<T>(
   queryBuilder: SelectQueryBuilder<T>,
   options: IPaginationOptions,
 ): Promise<Pagination<T>> {
-  const [page, limit, route] = resolveOptions(options);
+  const [page, limit] = resolveOptions(options);
 
   const totalQueryBuilder = queryBuilder.clone();
   const items = await queryBuilder
@@ -41,7 +41,7 @@ export async function paginateRaw<T>(
 
   const total = await totalQueryBuilder.getCount();
 
-  return createPaginationObject<T>(items, total, page, limit, route);
+  return createPaginationObject<T>(items, total, page, limit);
 }
 
 function createPaginationObject<T>(
@@ -49,52 +49,20 @@ function createPaginationObject<T>(
   totalItems: number,
   currentPage: number,
   limit: number,
-  route?: string,
 ) {
   const totalPages = Math.ceil(totalItems / limit);
-
-  const hasFirstPage = route;
-  const hasPreviousPage = route && currentPage > 1;
-  const hasNextPage = route && currentPage < totalPages;
-  const hasLastPage = route;
-
-  const symbol = route && new RegExp(/\?/).test(route) ? '&' : '?';
-
-  const routes: IPaginationLinks = {
-    first: hasFirstPage ? `${route}${symbol}limit=${limit}` : '',
-    previous: hasPreviousPage
-      ? `${route}${symbol}page=${currentPage - 1}&limit=${limit}`
-      : '',
-    next: hasNextPage
-      ? `${route}${symbol}page=${currentPage + 1}&limit=${limit}`
-      : '',
-    last: hasLastPage
-      ? `${route}${symbol}page=${totalPages}&limit=${limit}`
-      : '',
-  };
-
-  return new Pagination(
-    items,
-
-    {
-      totalItems: totalItems,
-      itemCount: items.length,
-      itemsPerPage: limit,
-
-      totalPages: totalPages,
-      currentPage: currentPage,
-    },
-
-    route && routes,
-  );
+  return new Pagination(items, {
+    totalItems: totalItems,
+    totalPages: totalPages,
+    currentPage: currentPage,
+  });
 }
 
-function resolveOptions(options: IPaginationOptions): [number, number, string] {
+function resolveOptions(options: IPaginationOptions): [number, number] {
   const page = options.page;
   const limit = options.limit;
-  const route = options.route;
 
-  return [page, limit, route];
+  return [page, limit];
 }
 
 async function paginateRepository<T>(
@@ -102,10 +70,10 @@ async function paginateRepository<T>(
   options: IPaginationOptions,
   searchOptions?: FindConditions<T> | FindManyOptions<T>,
 ): Promise<Pagination<T>> {
-  const [page, limit, route] = resolveOptions(options);
+  const [page, limit] = resolveOptions(options);
 
   if (page < 1) {
-    return createPaginationObject([], 0, page, limit, route);
+    return createPaginationObject([], 0, page, limit);
   }
 
   const [items, total] = await repository.findAndCount({
@@ -114,19 +82,19 @@ async function paginateRepository<T>(
     ...searchOptions,
   });
 
-  return createPaginationObject<T>(items, total, page, limit, route);
+  return createPaginationObject<T>(items, total, page, limit);
 }
 
 async function paginateQueryBuilder<T>(
   queryBuilder: SelectQueryBuilder<T>,
   options: IPaginationOptions,
 ): Promise<Pagination<T>> {
-  const [page, limit, route] = resolveOptions(options);
+  const [page, limit] = resolveOptions(options);
 
   const [items, total] = await queryBuilder
     .take(limit)
     .skip((page - 1) * limit)
     .getManyAndCount();
 
-  return createPaginationObject<T>(items, total, page, limit, route);
+  return createPaginationObject<T>(items, total, page, limit);
 }

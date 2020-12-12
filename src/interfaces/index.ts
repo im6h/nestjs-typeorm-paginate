@@ -10,14 +10,14 @@ export interface IPaginationOptions {
   /**
    * a babasesic route for generating links (i.e., WITHOUT query params)
    */
-  route?: string;
+  // route?: string;
 }
 
 export interface IPaginationMeta {
   /**
    * the amount of items on this specific page
    */
-  itemCount: number;
+  // itemCount: number;
   /**
    * the total amount of items
    */
@@ -25,7 +25,7 @@ export interface IPaginationMeta {
   /**
    * the amount of items that were requested per page
    */
-  itemsPerPage: number;
+  // itemsPerPage: number;
   /**
    * the total amount of pages in this paginator
    */
